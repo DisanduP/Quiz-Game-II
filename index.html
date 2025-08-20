@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Quiz Matrix</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 20% 50%, #ff00ff22 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, #00ffff22 0%, transparent 50%),
+                        radial-gradient(circle at 40% 80%, #ffff0022 0%, transparent 50%);
+            animation: bgPulse 8s ease-in-out infinite alternate;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(45deg, transparent 30%, #ff00ff05 50%, transparent 70%),
+                linear-gradient(-45deg, transparent 30%, #00ffff05 50%, transparent 70%);
+            animation: bgMove 12s linear infinite;
+        }
+
+        @keyframes bgPulse {
+            0% { transform: scale(1) rotate(0deg); }
+            100% { transform: scale(1.1) rotate(2deg); }
+        }
+
+        @keyframes bgMove {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Floating particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ffff;
+            border-radius: 50%;
+            animation: float 6s infinite ease-in-out;
+            opacity: 0.7;
+            box-shadow: 0 0 10px #00ffff;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) scale(0); }
+            50% { transform: translateY(-10vh) scale(1); }
+        }
+
+        .quiz-container {
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(20px);
+            border: 2px solid #333;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 550px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 0 60px rgba(0,0,0,0.5),
+                inset 0 0 20px #ffffff08;
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .quiz-title {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease-in-out infinite;
+            text-shadow: 0 0 30px #ff00ff77;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .quiz-subtitle {
+            color: #00ffff;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            opacity: 0.8;
+            text-shadow: 0 0 20px #00ffff77;
+        }
+
+        .progress-container {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #111;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #333;
+            box-shadow: inset 0 0 10px #000;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00);
+            background-size: 200% 100%;
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px;
+            animation: progressGlow 2s ease-in-out infinite;
+            box-shadow: 0 0 20px #ff00ff77;
+        }
+
+        @keyframes progressGlow {
+            0%, 100% { 
+                background-position: 0% 50%;
+                box-shadow: 0 0 20px #ff00ff77;
+            }
+            50% { 
+                background-position: 100% 50%;
+                box-shadow: 0 0 30px #00ffff77;
+            }
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 15px;
+            color: #00ffff;
+            font-weight: 700;
+            text-shadow: 0 0 10px #00ffff77;
+            letter-spacing: 2px;
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: translateX(50px) rotateY(20deg);
+            animation: slideInMatrix 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes slideInMatrix {
+            to {
+                opacity: 1;
+                transform: translateX(0) rotateY(0deg);
+            }
+        }
+
+        .question {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            text-align: center;
+            text-shadow: 0 0 20px #ffffff77;
+            padding: 20px;
+            background: linear-gradient(45deg, #ff00ff11, #00ffff11);
+            border-radius: 15px;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .question::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, #ffffff22, transparent);
+            animation: questionScan 3s ease-in-out infinite;
+        }
+
+        @keyframes questionScan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .options {
+            display: grid;
+            gap: 20px;
+        }
+
+        .option {
+            padding: 20px 25px;
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border: 2px solid #333;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 1.1rem;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 0 10px #ffffff77;
+            font-weight: 600;
+        }
+
+        .option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #ff00ff33, #00ffff33);
+            transition: width 0.4s ease;
+            z-index: -1;
+        }
+
+        .option:hover {
+            transform: translateX(10px) scale(1.02);
+            border-color: #00ffff;
+            box-shadow: 
+                0 0 30px #00ffff77,
+                inset 0 0 20px #00ffff22;
+            color: #00ffff;
+        }
+
+        .option:hover::before {
+            width: 100%;
+        }
+
+        .option.selected {
+            background: linear-gradient(145deg, #ff00ff22, #00ffff22);
+            border-color: #ff00ff;
+            transform: translateX(15px) scale(1.05);
+            box-shadow: 
+                0 0 40px #ff00ff77,
+                inset 0 0 30px #ff00ff22;
+            color: #ff00ff;
+        }
+
+        .option.correct {
+            background: linear-gradient(145deg, #00ff0022, #00ff0044);
+            border-color: #00ff00;
+            color: #00ff00;
+            box-shadow: 0 0 50px #00ff0077;
+            animation: correctPulse 0.6s ease-in-out;
+        }
+
+        .option.wrong {
+            background: linear-gradient(145deg, #ff000022, #ff000044);
+            border-color: #ff0000;
+            color: #ff0000;
+            box-shadow: 0 0 50px #ff000077;
+            animation: wrongShake 0.6s ease-in-out;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: 2px solid transparent;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: #000;
+            border-color: #ff00ff;
+            box-shadow: 0 0 30px #ff00ff77;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 50px #ff00ff77;
+            background: linear-gradient(45deg, #00ffff, #ffff00);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #333, #555);
+            color: #00ffff;
+            border-color: #00ffff;
+            box-shadow: 0 0 20px #00ffff44;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-5px) scale(1.05);
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            color: #000;
+            box-shadow: 0 10px 40px #00ffff77;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .score-container {
+            text-align: center;
+            padding: 50px 20px;
+            position: relative;
+        }
+
+        .score-title {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: scoreGlow 2s ease-in-out infinite;
+            text-shadow: 0 0 50px #ff00ff77;
+        }
+
+        @keyframes scoreGlow {
+            0%, 100% { 
+                background-position: 0% 50%;
+                filter: brightness(1);
+            }
+            50% { 
+                background-position: 100% 50%;
+                filter: brightness(1.3);
+            }
+        }
+
+        .score-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #000, #333);
+            color: #00ffff;
+            padding: 25px 50px;
+            border-radius: 50px;
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin: 30px 0;
+            box-shadow: 
+                0 0 60px #00ffff77,
+                inset 0 0 30px #00ffff22;
+            border: 3px solid #00ffff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, #00ffff22, transparent);
+            animation: badgeSpin 3s linear infinite;
+        }
+
+        @keyframes badgeSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .score-details {
+            font-size: 1.3rem;
+            color: #fff;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px #ffffff77;
+        }
+
+        .celebration {
+            animation: celebrate 2s ease-in-out;
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(-5deg); }
+            75% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .quiz-container {
+                padding: 25px;
+                margin: 10px;
+            }
+            
+            .quiz-title {
+                font-size: 2.2rem;
+            }
+            
+            .question {
+                font-size: 1.2rem;
+                padding: 15px;
+            }
+            
+            .option {
+                padding: 15px 20px;
+                font-size: 1rem;
+            }
+
+            .score-title {
+                font-size: 2.2rem;
+            }
+
+            .score-badge {
+                font-size: 2rem;
+                padding: 20px 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <div class="particles" id="particles"></div>
+
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1 class="quiz-title">NEON QUIZ</h1>
+            <p class="quiz-subtitle">MATRIX</p>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+            <div class="progress-text">
+                LEVEL <span id="currentQuestion">1</span> OF <span id="totalQuestions">10</span>
+            </div>
+        </div>
+
+        <div id="questionContainer" class="question-container">
+            <h2 class="question" id="question">Initializing neural network...</h2>
+            <div class="options" id="options">
+                <!-- Options will be inserted here -->
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Execute</button>
+            <button class="btn btn-secondary" id="restartBtn" onclick="restartQuiz()" style="display: none;">Reboot Matrix</button>
+        </div>
+
+        <div id="scoreContainer" class="score-container hidden">
+            <h2 class="score-title">SYSTEM COMPLETE</h2>
+            <div class="score-badge" id="finalScore">0/10</div>
+            <p class="score-details" id="scoreMessage">Neural pathways analyzed!</p>
+        </div>
+    </div>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const particles = document.getElementById('particles');
+            const colors = ['#ff00ff', '#00ffff', '#ffff00'];
+            
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (4 + Math.random() * 4) + 's';
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.boxShadow = `0 0 10px ${particle.style.background}`;
+                particles.appendChild(particle);
+            }
+        }
+
+        // Quiz data with tech/sci-fi theme
+        const quizData = [
+            {
+                question: "In the Matrix, what color pill does Neo take?",
+                options: ["Blue Pill", "Red Pill", "Green Pill", "Purple Pill"],
+                correct: 1
+            },
+            {
+                question: "What does AI stand for?",
+                options: ["Advanced Intelligence", "Artificial Intelligence", "Automated Interface", "Applied Integration"],
+                correct: 1
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Venus", "Mars", "Jupiter", "Saturn"],
+                correct: 1
+            },
+            {
+                question: "What is the speed of light?",
+                options: ["299,792,458 m/s", "300,000,000 m/s", "186,000 m/s", "150,000,000 m/s"],
+                correct: 0
+            },
+            {
+                question: "Who created the World Wide Web?",
+                options: ["Bill Gates", "Steve Jobs", "Tim Berners-Lee", "Mark Zuckerberg"],
+                correct: 2
+            },
+            {
+                question: "What does CPU stand for?",
+                options: ["Computer Processing Unit", "Central Processing Unit", "Core Processing Unit", "Central Program Unit"],
+                correct: 1
+            },
+            {
+                question: "In binary, what is 1010 in decimal?",
+                options: ["8", "10", "12", "14"],
+                correct: 1
+            },
+            {
+                question: "Which company developed the first iPhone?",
+                options: ["Samsung", "Google", "Apple", "Microsoft"],
+                correct: 2
+            },
+            {
+                question: "What is the most abundant gas in Earth's atmosphere?",
+                options: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"],
+                correct: 2
+            },
+            {
+                question: "In what year was the first computer bug found?",
+                options: ["1945", "1947", "1950", "1955"],
+                correct: 1
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let selectedAnswer = null;
+
+        // DOM elements
+        const questionEl = document.getElementById('question');
+        const optionsEl = document.getElementById('options');
+        const nextBtn = document.getElementById('nextBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const progressBar = document.getElementById('progressBar');
+        const currentQuestionEl = document.getElementById('currentQuestion');
+        const totalQuestionsEl = document.getElementById('totalQuestions');
+        const questionContainer = document.getElementById('questionContainer');
+        const scoreContainer = document.getElementById('scoreContainer');
+        const finalScore = document.getElementById('finalScore');
+        const scoreMessage = document.getElementById('scoreMessage');
+
+        function initQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            selectedAnswer = null;
+            totalQuestionsEl.textContent = quizData.length;
+            questionContainer.classList.remove('hidden');
+            scoreContainer.classList.add('hidden');
+            nextBtn.style.display = 'inline-block';
+            nextBtn.textContent = 'Execute';
+            restartBtn.style.display = 'none';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const question = quizData[currentQuestionIndex];
+            questionEl.textContent = question.question;
+            
+            optionsEl.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const optionEl = document.createElement('div');
+                optionEl.className = 'option';
+                optionEl.textContent = option;
+                optionEl.onclick = () => selectOption(index);
+                optionsEl.appendChild(optionEl);
+            });
+
+            currentQuestionEl.textContent = currentQuestionIndex + 1;
+            updateProgressBar();
+            nextBtn.disabled = true;
+            selectedAnswer = null;
+
+            // Reset animation
+            questionContainer.style.opacity = '0';
+            questionContainer.style.transform = 'translateX(50px) rotateY(20deg)';
+            setTimeout(() => {
+                questionContainer.style.opacity = '1';
+                questionContainer.style.transform = 'translateX(0) rotateY(0deg)';
+            }, 100);
+        }
+
+        function selectOption(index) {
+            const options = document.querySelectorAll('.option');
+            options.forEach(option => option.classList.remove('selected'));
+            options[index].classList.add('selected');
+            selectedAnswer = index;
+            nextBtn.disabled = false;
+        }
+
+        function nextQuestion() {
+            const question = quizData[currentQuestionIndex];
+            const options = document.querySelectorAll('.option');
+            
+            // Show correct/wrong answers
+            options.forEach((option, index) => {
+                if (index === question.correct) {
+                    option.classList.add('correct');
+                } else if (index === selectedAnswer && index !== question.correct) {
+                    option.classList.add('wrong');
+                }
+            });
+
+            // Check if answer is correct
+            if (selectedAnswer === question.correct) {
+                score++;
+            }
+
+            // Wait for animation, then proceed
+            setTimeout(() => {
+                currentQuestionIndex++;
+                if (currentQuestionIndex < quizData.length) {
+                    loadQuestion();
+                } else {
+                    showResults();
+                }
+            }, 2000);
+        }
+
+        function updateProgressBar() {
+            const progress = ((currentQuestionIndex) / quizData.length) * 100;
+            progressBar.style.width = progress + '%';
+        }
+
+        function showResults() {
+            questionContainer.classList.add('hidden');
+            scoreContainer.classList.remove('hidden');
+            nextBtn.style.display = 'none';
+            restartBtn.style.display = 'inline-block';
+            
+            finalScore.textContent = `${score}/${quizData.length}`;
+            
+            let message = '';
+            const percentage = (score / quizData.length) * 100;
+            
+            if (percentage === 100) {
+                message = '🔥 PERFECT MATRIX MASTERY! 🔥';
+                scoreContainer.classList.add('celebration');
+            } else if (percentage >= 80) {
+                message = '⚡ NEURAL PATHWAYS OPTIMIZED! ⚡';
+            } else if (percentage >= 60) {
+                message = '🚀 SYSTEM RUNNING SMOOTHLY! 🚀';
+            } else if (percentage >= 40) {
+                message = '⚠️ MINOR GLITCHES DETECTED! ⚠️';
+            } else {
+                message = '💾 SYSTEM NEEDS DEBUGGING! 💾';
+            }
+            
+            scoreMessage.textContent = message;
+            updateProgressBar();
+        }
+
+        function restartQuiz() {
+            scoreContainer.classList.remove('celebration');
+            initQuiz();
+        }
+
+        // Initialize everything
+        createParticles();
+        initQuiz();
+    </script>
+</body>
+</html>
